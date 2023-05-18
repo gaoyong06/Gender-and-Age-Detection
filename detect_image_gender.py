@@ -2,7 +2,7 @@
 Author: gaoyong gaoyong06@qq.com
 Date: 2023-05-18 16:10:01
 LastEditors: gaoyong gaoyong06@qq.com
-LastEditTime: 2023-05-18 17:05:13
+LastEditTime: 2023-05-18 17:11:56
 FilePath: \Gender-and-Age-Detection\detect_image_gender.py
 Description: 对detect.py做了一些裁剪,去掉了摄像头的处理,去掉了关于绘制边框和文字的部分，只保留图片内人脸识别及性别检测,如果识别为男性则打印Male,如果识别为女性则打印Female,如果为检测到人脸则打印No face detected
 '''
@@ -11,8 +11,25 @@ import cv2
 import argparse
 import json
 
-# 使用示例：python detect_image_gender.py --image D:/work/images/detect_gender/25.jpeg D:/work/images/detect_gender/26.jpeg D:/work/images/detect_gender/27.jpeg
-# 返回值：[{"image": "D:/work/images/detect_gender/25.jpeg", "status": 0, "message": "", "gender": ["Male", "Female"]}, {"image": "D:/work/images/detect_gender/26.jpeg", "status": 0, "message": "", "gender": ["Male", "Male", "Male"]}, {"image": "D:/work/images/detect_gender/27.jpeg", "status": 0, "message": "", "gender": ["Female", "Female"]}]
+# 使用示例：python detect_image_gender.py --image D:/work/images/detect_gender/25.jpeg D:/work/images/detect_gender/26.jpeg
+# 返回值json数组 status:1 表示：未检测到人脸, 0: 表示检测到人脸, gender: 是人脸的性别构成的数组
+# [
+#     {
+#         "image": "D:/work/images/detect_gender/17.jpeg",
+#         "status": 1,
+#         "message": "No face detected in the image",
+#         "gender": []
+#     },
+#     {
+#         "image": "D:/work/images/detect_gender/25.jpeg",
+#         "status": 0,
+#         "message": "",
+#         "gender": [
+#             "Male",
+#             "Female"
+#         ]
+#     },
+# ]
 
 # 设置中文编码
 sys.stdout.reconfigure(encoding='utf-8')
