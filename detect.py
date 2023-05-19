@@ -1,76 +1,88 @@
+'''
+Author: gaoyong gaoyong06@qq.com
+Date: 2023-05-18 16:00:01
+LastEditors: gaoyong gaoyong06@qq.com
+LastEditTime: 2023-05-19 09:13:41
+FilePath: \Gender-and-Age-Detection\detect.py
+Description: 图片,摄像头内人脸识别，性别检测，年龄检测
+'''
 #A Gender and Age Detection program by Mahesh Sawant
 
+import os
 import cv2
 import math
 import argparse
 
-def highlightFace(net, frame, conf_threshold=0.7):
-    frameOpencvDnn=frame.copy()
-    frameHeight=frameOpencvDnn.shape[0]
-    frameWidth=frameOpencvDnn.shape[1]
-    blob=cv2.dnn.blobFromImage(frameOpencvDnn, 1.0, (300, 300), [104, 117, 123], True, False)
+def highlightFace(net, frame, conf_threshold = 0.7):
+    frameOpencvDnn = frame.copy()
+    frameHeight = frameOpencvDnn.shape[0]
+    frameWidth = frameOpencvDnn.shape[1]
+    blob = cv2.dnn.blobFromImage(frameOpencvDnn, 1.0, (300, 300), [104, 117, 123], True, False)
 
     net.setInput(blob)
-    detections=net.forward()
-    faceBoxes=[]
+    detections = net.forward()
+    faceBoxes = []
     for i in range(detections.shape[2]):
-        confidence=detections[0,0,i,2]
+        confidence = detections[0,0,i,2]
         if confidence>conf_threshold:
-            x1=int(detections[0,0,i,3]*frameWidth)
-            y1=int(detections[0,0,i,4]*frameHeight)
-            x2=int(detections[0,0,i,5]*frameWidth)
-            y2=int(detections[0,0,i,6]*frameHeight)
+            x1 = int(detections[0,0,i,3]*frameWidth)
+            y1 = int(detections[0,0,i,4]*frameHeight)
+            x2 = int(detections[0,0,i,5]*frameWidth)
+            y2 = int(detections[0,0,i,6]*frameHeight)
             faceBoxes.append([x1,y1,x2,y2])
             cv2.rectangle(frameOpencvDnn, (x1,y1), (x2,y2), (0,255,0), int(round(frameHeight/150)), 8)
     return frameOpencvDnn,faceBoxes
 
 
-parser=argparse.ArgumentParser()
+parser = argparse.ArgumentParser()
 parser.add_argument('--image')
 
-args=parser.parse_args()
+args = parser.parse_args()
 
-faceProto="opencv_face_detector.pbtxt"
-faceModel="opencv_face_detector_uint8.pb"
-ageProto="age_deploy.prototxt"
-ageModel="age_net.caffemodel"
-genderProto="gender_deploy.prototxt"
-genderModel="gender_net.caffemodel"
+# 获取应用程序的根目录（当前文件所在的目录）
+app_root = os.path.abspath(os.path.dirname(__file__))
 
-MODEL_MEAN_VALUES=(78.4263377603, 87.7689143744, 114.895847746)
-ageList=['(0-2)', '(4-6)', '(8-12)', '(15-20)', '(25-32)', '(38-43)', '(48-53)', '(60-100)']
-genderList=['Male','Female']
+faceProto = os.path.join(app_root, "opencv_face_detector.pbtxt")
+faceModel = os.path.join(app_root, "opencv_face_detector_uint8.pb")
+ageProto = os.path.join(app_root, "age_deploy.prototxt")
+ageModel = os.path.join(app_root, "age_net.caffemodel")
+genderProto = os.path.join(app_root, "gender_deploy.prototxt")
+genderModel = os.path.join(app_root, "gender_net.caffemodel")
 
-faceNet=cv2.dnn.readNet(faceModel,faceProto)
-ageNet=cv2.dnn.readNet(ageModel,ageProto)
-genderNet=cv2.dnn.readNet(genderModel,genderProto)
+MODEL_MEAN_VALUES = (78.4263377603, 87.7689143744, 114.895847746)
+ageList = ['(0-2)', '(4-6)', '(8-12)', '(15-20)', '(25-32)', '(38-43)', '(48-53)', '(60-100)']
+genderList = ['Male','Female']
 
-video=cv2.VideoCapture(args.image if args.image else 0)
-padding=20
+faceNet = cv2.dnn.readNet(faceModel,faceProto)
+ageNet = cv2.dnn.readNet(ageModel,ageProto)
+genderNet = cv2.dnn.readNet(genderModel,genderProto)
+
+video = cv2.VideoCapture(args.image if args.image else 0)
+padding = 20
 while cv2.waitKey(1)<0 :
-    hasFrame,frame=video.read()
+    hasFrame,frame = video.read()
     if not hasFrame:
         cv2.waitKey()
         break
     
-    resultImg,faceBoxes=highlightFace(faceNet,frame)
+    resultImg,faceBoxes = highlightFace(faceNet,frame)
     if not faceBoxes:
         print("No face detected")
 
     for faceBox in faceBoxes:
-        face=frame[max(0,faceBox[1]-padding):
+        face = frame[max(0,faceBox[1]-padding):
                    min(faceBox[3]+padding,frame.shape[0]-1),max(0,faceBox[0]-padding)
                    :min(faceBox[2]+padding, frame.shape[1]-1)]
 
-        blob=cv2.dnn.blobFromImage(face, 1.0, (227,227), MODEL_MEAN_VALUES, swapRB=False)
+        blob = cv2.dnn.blobFromImage(face, 1.0, (227,227), MODEL_MEAN_VALUES, swapRB = False)
         genderNet.setInput(blob)
-        genderPreds=genderNet.forward()
-        gender=genderList[genderPreds[0].argmax()]
+        genderPreds = genderNet.forward()
+        gender = genderList[genderPreds[0].argmax()]
         print(f'Gender: {gender}')
 
         ageNet.setInput(blob)
-        agePreds=ageNet.forward()
-        age=ageList[agePreds[0].argmax()]
+        agePreds = ageNet.forward()
+        age = ageList[agePreds[0].argmax()]
         print(f'Age: {age[1:-1]} years')
 
         cv2.putText(resultImg, f'{gender}, {age}', (faceBox[0], faceBox[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,255), 2, cv2.LINE_AA)
